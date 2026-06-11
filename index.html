@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoice Generator — Hypospot Shoes Care</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --gold: #CBA135;
+  --gold-light: #F5E6A3;
+  --gold-pale: #FFFBF0;
+  --black: #1A1A1A;
+  --dark: #2D2D2D;
+  --mid: #4A4A4A;
+  --muted: #888;
+  --border: #E5E5E5;
+  --bg: #F7F7F5;
+  --white: #FFFFFF;
+  --danger: #CC3333;
+  --success: #1A7A4A;
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;background:var(--bg);color:var(--black);min-height:100vh}
+
+/* TOPBAR */
+.topbar{background:var(--black);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:54px;position:sticky;top:0;z-index:100}
+.topbar-brand{display:flex;align-items:center;gap:10px}
+.topbar-logo{font-size:18px;font-weight:700;color:var(--gold);letter-spacing:.5px}
+.topbar-sub{font-size:10px;color:#888;letter-spacing:.08em;text-transform:uppercase}
+.topbar-tabs{display:flex;gap:2px}
+.tab-btn{padding:8px 16px;background:none;border:none;color:#999;font-size:12px;cursor:pointer;border-radius:var(--radius-sm);font-family:inherit;transition:all .15s}
+.tab-btn:hover{color:#fff;background:rgba(255,255,255,.07)}
+.tab-btn.active{color:var(--gold);background:rgba(203,161,53,.12);font-weight:500}
+
+/* LAYOUT */
+.main{display:grid;grid-template-columns:1fr 420px;gap:20px;padding:20px 24px;max-width:1280px;margin:0 auto}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* CARDS */
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:14px}
+.card-title{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.card-title svg{opacity:.5}
+
+/* FORM */
+.field{margin-bottom:12px}
+.field label{display:block;font-size:11px;color:var(--mid);margin-bottom:4px;font-weight:500}
+.field input,.field select,.field textarea{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--white);color:var(--black);transition:border .15s}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--gold)}
+.field textarea{resize:vertical;min-height:56px;line-height:1.5}
+.field input[readonly]{background:#F7F7F5;color:var(--muted);cursor:default}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+
+/* ITEM TABLE */
+.item-table{width:100%;border-collapse:collapse}
+.item-table th{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;background:#FAFAFA}
+.item-table td{padding:5px 4px;border-bottom:1px solid #F0F0F0;vertical-align:middle}
+.item-table tr:last-child td{border-bottom:none}
+.item-table tr:hover td{background:#FAFAFA}
+.item-row-num{width:22px;text-align:center;color:var(--muted);font-size:11px}
+.item-table td input,.item-table td select{width:100%;padding:6px 7px;border:1px solid transparent;border-radius:5px;font-size:12px;font-family:inherit;background:transparent;color:var(--black)}
+.item-table td input:focus,.item-table td select:focus{outline:none;border-color:var(--gold);background:var(--white)}
+.item-sub{text-align:right;font-size:12px;font-weight:600;color:var(--dark);padding-right:6px;min-width:80px}
+.item-del{width:28px;text-align:center}
+.item-del button{background:none;border:none;cursor:pointer;color:#CCC;font-size:15px;line-height:1;padding:2px 4px;border-radius:4px;transition:color .15s}
+.item-del button:hover{color:var(--danger)}
+
+/* SUMMARY */
+.summary-box{border-top:1px solid var(--border);margin-top:8px;padding-top:10px}
+.sum-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:12px;color:var(--mid)}
+.sum-row.total-row{background:var(--black);color:var(--gold);font-size:14px;font-weight:700;padding:10px 14px;border-radius:var(--radius-sm);margin-top:6px}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--white);color:var(--dark);font-family:inherit;transition:all .15s}
+.btn:hover{background:#F0F0F0}
+.btn-primary{background:var(--black);color:var(--gold);border-color:var(--black)}
+.btn-primary:hover{background:#333}
+.btn-gold{background:var(--gold);color:var(--black);border-color:var(--gold);font-weight:700}
+.btn-gold:hover{background:#B8911F}
+.btn-danger{color:var(--danger);border-color:#F5CCCC}
+.btn-danger:hover{background:#FFF5F5}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-block{width:100%;justify-content:center}
+.action-row{display:flex;gap:8px;margin-top:14px}
+
+/* PREVIEW */
+.preview-sticky{position:sticky;top:74px}
+.preview-frame{background:#E8E8E8;border-radius:var(--radius);padding:12px;border:1px solid var(--border)}
+.preview-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
+
+/* INVOICE PREVIEW */
+.inv{background:var(--white);font-family:Arial,sans-serif;font-size:10px;color:#1a1a1a;border-radius:6px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.inv-header{background:#1A1A1A;padding:12px 16px 10px;display:flex;justify-content:space-between;align-items:center}
+.inv-brand{font-size:17px;font-weight:700;color:#CBA135;letter-spacing:.5px}
+.inv-word{font-size:15px;font-weight:700;color:#FFF}
+.inv-subline{font-size:7px;color:#888;letter-spacing:.12em;text-transform:uppercase}
+.inv-gold{height:3px;background:#CBA135}
+.inv-meta{background:#1A1A1A;display:grid;grid-template-columns:1fr 1fr;padding:7px 16px 9px;gap:4px}
+.inv-kv{display:flex;gap:5px;margin-bottom:2px}
+.inv-k{color:#CBA135;font-size:8px;font-weight:700;min-width:54px;flex-shrink:0}
+.inv-v{color:#FFF;font-size:8px;word-break:break-all}
+.inv-v.highlight{color:#CBA135;font-weight:700}
+.inv-section-head{background:#2D2D2D;color:#FFF;font-size:8px;font-weight:700;padding:4px 14px;letter-spacing:.06em;text-transform:uppercase}
+.inv-addr{padding:5px 14px 6px;background:#F9F9F9;color:#555;font-size:8px;min-height:20px;line-height:1.5}
+.inv-table{width:100%;border-collapse:collapse}
+.inv-th{background:#1A1A1A;color:#FFF;font-size:8px;font-weight:700;padding:4px 7px;text-align:left}
+.inv-th.r{text-align:right}
+.inv-td{font-size:8px;padding:3px 7px;border-bottom:.5px solid #EEE;color:#333}
+.inv-td.r{text-align:right;font-weight:500}
+.inv-tr-alt{background:#FFFBF0}
+.inv-summary{padding:5px 14px 0;background:#F9F9F9}
+.inv-srow{display:flex;justify-content:space-between;font-size:8px;padding:2px 0;color:#555}
+.inv-srow.disc{color:#CC3333}
+.inv-total{background:#1A1A1A;display:flex;justify-content:space-between;padding:6px 14px;font-size:10px;font-weight:700;color:#CBA135}
+.inv-note{padding:4px 14px 6px;font-size:7px;color:#AAA;font-style:italic;background:#FFF}
+.inv-footer{height:3px;background:#CBA135}
+
+/* HISTORY */
+.hist-empty{text-align:center;padding:32px 0;color:var(--muted)}
+.hist-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:10px}
+.hist-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;transition:background .12s}
+.hist-item:hover{background:#FAFAF8}
+.hist-no{font-weight:600;font-size:13px;color:var(--black)}
+.hist-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.hist-right{text-align:right}
+.hist-total{font-size:13px;font-weight:700;color:var(--dark)}
+.hist-actions{display:flex;gap:6px;margin-top:4px;justify-content:flex-end}
+.badge{display:inline-block;font-size:9px;padding:2px 8px;border-radius:20px;font-weight:600}
+.badge-shopee{background:#FFEDE8;color:#D1402A}
+.badge-tiktok{background:#EBEBEB;color:#333}
+.badge-tokopedia{background:#E8F5EE;color:#007A3D}
+.badge-lain{background:#F0F0F0;color:#555}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--black);color:var(--white);padding:10px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;z-index:999;transform:translateY(80px);opacity:0;transition:all .3s;display:flex;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.toast.show{transform:translateY(0);opacity:1}
+.toast-dot{width:8px;height:8px;border-radius:50%;background:var(--gold)}
+
+/* SEARCH */
+.search-wrap{position:relative;margin-bottom:14px}
+.search-wrap input{width:100%;padding:9px 12px 9px 34px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--white)}
+.search-wrap input:focus{outline:none;border-color:var(--gold)}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:15px;pointer-events:none}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#DDD;border-radius:4px}
+
+/* MOBILE */
+@media(max-width:900px){
+  .main{grid-template-columns:1fr}
+  .preview-sticky{position:static}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <div>
+      <div class="topbar-logo">HYPOSPOT</div>
+      <div class="topbar-sub">Invoice Generator</div>
+    </div>
+  </div>
+  <div class="topbar-tabs">
+    <button class="tab-btn active" onclick="switchTab('form')">&#9998; Buat Invoice</button>
+    <button class="tab-btn" onclick="switchTab('history')">&#128196; Riwayat</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT: FORM -->
+  <div>
+
+    <!-- FORM TAB -->
+    <div id="tab-form" class="tab-panel active">
+
+      <!-- Invoice Info -->
+      <div class="card">
+        <div class="card-title">&#128196; Data Invoice</div>
+        <div class="row3">
+          <div class="field">
+            <label>No. Invoice</label>
+            <input id="f-noinv" type="text" readonly>
+          </div>
+          <div class="field">
+            <label>Tanggal</label>
+            <input id="f-tgl" type="date">
+          </div>
+          <div class="field">
+            <label>Platform</label>
+            <select id="f-platform">
+              <option value="Shopee">Shopee</option>
+              <option value="TikTok Shop">TikTok Shop</option>
+              <option value="Tokopedia">Tokopedia</option>
+              <option value="Lain-lain">Lain-lain</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Buyer Info -->
+      <div class="card">
+        <div class="card-title">&#128100; Data Pembeli</div>
+        <div class="row2">
+          <div class="field">
+            <label>Nama Pembeli</label>
+            <input id="f-nama" type="text" placeholder="Nama lengkap pembeli" oninput="updatePreview()">
+          </div>
+          <div class="field">
+            <label>No. HP</label>
+            <input id="f-hp" type="text" placeholder="08xx-xxxx-xxxx" oninput="genCustId();updatePreview()">
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label>ID Customer</label>
+            <input id="f-custid" type="text" readonly placeholder="Auto dari No. HP">
+          </div>
+          <div class="field">
+            <label>ID Akun Marketplace</label>
+            <input id="f-idmkt" type="text" placeholder="Username / ID akun" oninput="updatePreview()">
+          </div>
+        </div>
+        <div class="field">
+          <label>Alamat Pengiriman</label>
+          <textarea id="f-alamat" placeholder="Jl. ... No. ..., Kel., Kec., Kota, Provinsi, Kode Pos" oninput="updatePreview()"></textarea>
+        </div>
+      </div>
+
+      <!-- Items -->
+      <div class="card">
+        <div class="card-title">&#128722; Item Pesanan</div>
+        <div style="overflow-x:auto">
+          <table class="item-table">
+            <thead>
+              <tr>
+                <th style="width:24px">#</th>
+                <th style="width:110px">SKU</th>
+                <th>Nama Produk</th>
+                <th style="width:52px;text-align:center">Qty</th>
+                <th style="width:90px;text-align:right">Harga (Rp)</th>
+                <th style="width:88px;text-align:right">Subtotal</th>
+                <th style="width:28px"></th>
+              </tr>
+            </thead>
+            <tbody id="item-body"></tbody>
+          </table>
+        </div>
+
+        <!-- Summary -->
+        <div class="summary-box">
+          <div class="sum-row"><span>Subtotal</span><span id="s-sub">Rp 0</span></div>
+          <div class="sum-row">
+            <span>Ongkos Kirim</span>
+            <input id="f-ongkir" type="number" min="0" placeholder="0"
+              style="width:110px;text-align:right;padding:4px 7px;border:1px solid var(--border);border-radius:5px;font-size:12px;font-family:inherit"
+              oninput="updatePreview()">
+          </div>
+          <div class="sum-row">
+            <span>Diskon / Voucher</span>
+            <input id="f-diskon" type="number" min="0" placeholder="0"
+              style="width:110px;text-align:right;padding:4px 7px;border:1px solid var(--border);border-radius:5px;font-size:12px;font-family:inherit"
+              oninput="updatePreview()">
+          </div>
+          <div class="sum-row total-row"><span>TOTAL PEMBAYARAN</span><span id="s-total">Rp 0</span></div>
+        </div>
+
+        <!-- Catatan -->
+        <div class="field" style="margin-top:12px">
+          <label>Catatan (opsional)</label>
+          <input id="f-catatan" type="text" placeholder="Pesan untuk pembeli..." oninput="updatePreview()">
+        </div>
+
+        <div class="action-row">
+          <button class="btn btn-danger" onclick="resetForm()">&#8635; Reset</button>
+          <button class="btn btn-primary btn-block" onclick="saveInvoice()">&#128190; Simpan Invoice</button>
+          <button class="btn btn-gold btn-block" onclick="printPDF()">&#128438; Unduh PDF</button>
+        </div>
+      </div>
+
+    </div><!-- /tab-form -->
+
+    <!-- HISTORY TAB -->
+    <div id="tab-history" class="tab-panel">
+      <div class="card" style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div class="card-title" style="margin-bottom:0">&#128196; Riwayat Invoice</div>
+          <div style="display:flex;gap:8px">
+            <select id="hist-filter" onchange="renderHistory()" style="padding:5px 8px;border:1px solid var(--border);border-radius:5px;font-size:12px;font-family:inherit">
+              <option value="">Semua Platform</option>
+              <option value="Shopee">Shopee</option>
+              <option value="TikTok Shop">TikTok Shop</option>
+              <option value="Tokopedia">Tokopedia</option>
+              <option value="Lain-lain">Lain-lain</option>
+            </select>
+            <button class="btn btn-sm btn-danger" onclick="clearHistory()">&#128465; Hapus Semua</button>
+          </div>
+        </div>
+        <div class="search-wrap">
+          <span class="search-icon">&#128269;</span>
+          <input type="text" id="hist-search" placeholder="Cari nama pembeli, no. invoice..." oninput="renderHistory()">
+        </div>
+        <div id="hist-stats" style="font-size:11px;color:var(--muted);margin-bottom:8px"></div>
+      </div>
+      <div id="hist-list"></div>
+    </div><!-- /tab-history -->
+
+  </div>
+
+  <!-- RIGHT: PREVIEW -->
+  <div class="preview-sticky">
+    <div class="preview-frame">
+      <div class="preview-label">&#128065; Preview Invoice</div>
+      <div id="inv-preview"></div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- TOAST -->
+<div class="toast" id="toast"><span class="toast-dot"></span><span id="toast-msg">Tersimpan!</span></div>
+
+<script>
+// ─── PRODUCT DATA ───────────────────────────────────────────────
+const PRODUCTS = [
+  {sku:'HSBP000001',name:'Hypoglue X Alat Press F-Clamp'},
+  {sku:'HSBP000002',name:'Silica Gel X Parfum Travel'},
+  {sku:'HSBP000003',name:'Balsam X Parfum Travel'},
+  {sku:'HSBP000004',name:'Balsam X Silica Gel'},
+  {sku:'HSBP000005',name:'Hypoglue X Silica Gel'},
+  {sku:'HSBP000006',name:'Alat Press F-Clamp X Silica Gel'},
+  {sku:'HSBP000007',name:'Alat Press Spring X Silica Gel'},
+  {sku:'HSBP000008',name:'Wipes Shoe X Microfiber'},
+  {sku:'HSBP000009',name:'Wipes Shoe X Silica Gel'},
+  {sku:'HSBP000010',name:'Alat Press Spring X Hypoglue'},
+  {sku:'HSBS000001',name:'Brush Hard'},
+  {sku:'HSBS000002',name:'Brush Premium'},
+  {sku:'HSBS000003',name:'Brush Standart'},
+  {sku:'HSBS000004',name:'Brush Insole'},
+  {sku:'HSBS000005',name:'Brush Wire Detailing'},
+  {sku:'HSBS000006',name:'Brush Suede'},
+  {sku:'HSCB000001',name:'Premium Cleaner 100ml All Material'},
+  {sku:'HSCB000002',name:'Premium Cleaner 250ml All Material'},
+  {sku:'HSCB000003',name:'Premium Cleaner 500ml All Material'},
+  {sku:'HSCB000004',name:'Premium Cleaner 1 Liter All Material'},
+  {sku:'HSCF000001',name:'Shoes Cleaner Foam 110ml'},
+  {sku:'HSCH000001',name:'Hard Cleaner For Outsole Midsole 250ml'},
+  {sku:'HSCH000002',name:'Hard Cleaner For Outsole Midsole 500ml'},
+  {sku:'HSCH000003',name:'Hard Cleaner For Outsole Midsole 1000ml'},
+  {sku:'HSCL000001',name:'Premium Shoes Cleaner For Leather 1000ml'},
+  {sku:'HSCS000001',name:'Premium Shoes Cleaner For Suede 1000ml'},
+  {sku:'HSDV000001',name:'Hypo glue Lem Bening 70ml'},
+  {sku:'HSDV000002',name:'HypoGlue Lem 100ml'},
+  {sku:'HSDV000003',name:'Alas Cuci Anti Selip'},
+  {sku:'HSDV000004',name:'Apron Celemek'},
+  {sku:'HSDV000005',name:'Alat Press F-Clamp'},
+  {sku:'HSDV000006',name:'Lotion Leather'},
+  {sku:'HSDV000007',name:'Microfiber Premium'},
+  {sku:'HSDV000008',name:'Saddle Shoes 33cm'},
+  {sku:'HSDV000009',name:'Unyellowing 100ml'},
+  {sku:'HSDV000010',name:'Suede Eraser 1,5cm'},
+  {sku:'HSDV000011',name:'Suede Eraser 7cm'},
+  {sku:'HSDV000012',name:'Unyellowing 250ml'},
+  {sku:'HSDV000013',name:'Totebag Tas Selempang'},
+  {sku:'HSDV000014',name:'Leather Balsam'},
+  {sku:'HSDV000015',name:'Whitening Only'},
+  {sku:'HSDV000016',name:'Whitening + Sour'},
+  {sku:'HSDV000017',name:'Stabilizer Sour'},
+  {sku:'HSDV000018',name:'Unyellowing 500ml'},
+  {sku:'HSDV000019',name:'Unyellowing 1Liter'},
+  {sku:'HSDV000020',name:'Silica Gel 200gr'},
+  {sku:'HSDV000021',name:'Silica Gel 100gr'},
+  {sku:'HSDV000022',name:'Silica Gel 50gr'},
+  {sku:'HSDV000023',name:'Saddle Shoes 27cm'},
+  {sku:'HSDV000024',name:'Alat Press Spring'},
+  {sku:'HSDV000025',name:'Shoe Cover Pelindung'},
+  {sku:'HSDV000026',name:'Wipes Shoe'},
+  {sku:'HSDV000027',name:'Silica Gel Biru Box'},
+  {sku:'HSDV000028',name:'Sarung Tangan Latex'},
+  {sku:'HSDV000029',name:'Amplas Bulat'},
+  {sku:'HSDV000030',name:'Jarum Sole'},
+  {sku:'HSDV000031',name:'Sarung Tangan Latex 2pcs'},
+  {sku:'HSDV000032',name:'Sarung Tangan Latex 4pcs'},
+  {sku:'HSDV000033',name:'Sarung Tangan Latex 6pcs'},
+  {sku:'HSDV000034',name:'Amplas Bulat 3pcs'},
+  {sku:'HSDV000035',name:'Amplas Bulat 5pcs'},
+  {sku:'HSDV000036',name:'Shoe Renovator'},
+  {sku:'HSDV000037',name:'Wipes Shoe Box 12pcs'},
+  {sku:'HSEC000001',name:'Electronic Cleaner 30ml'},
+  {sku:'HSEC000002',name:'Electronic Cleaner 60ml'},
+  {sku:'HSEC000003',name:'Electronic Cleaner 100ml'},
+  {sku:'HSPK000001',name:'Pesanan Khusus Hypospot'},
+  {sku:'HSPL000001',name:'Paket Usaha Lengkap Perintis'},
+  {sku:'HSPL000002',name:'Paket Usaha Lengkap Mini'},
+  {sku:'HSPL000003',name:'Paket Usaha Lengkap Simple'},
+  {sku:'HSPL000004',name:'Paket Usaha Lengkap Standart'},
+  {sku:'HSPL000005',name:'Paket Usaha Lengkap Juara'},
+  {sku:'HSPL000006',name:'Paket Usaha Lengkap Medium'},
+  {sku:'HSPL000007',name:'Paket Usaha Lengkap Premium'},
+  {sku:'HSPL000008',name:'Paket Usaha Lengkap Platinum'},
+  {sku:'HSPP000001',name:'Paket Pribadi All Materials'},
+  {sku:'HSPP000002',name:'Paket Pribadi Soe Care'},
+  {sku:'HSPS000001',name:'Parfume BubbleGum 100ml'},
+  {sku:'HSPS000002',name:'Parfume Choco 100ml'},
+  {sku:'HSPS000003',name:'Parfume Coffee 100ml'},
+  {sku:'HSPS000004',name:'Parfume Greentea 100ml'},
+  {sku:'HSPS000005',name:'Parfume Vanilla 100ml'},
+  {sku:'HSPS000006',name:'Parfume Sweet Purple 100ml'},
+  {sku:'HSPS000007',name:'Parfume Baby Soap 100ml'},
+  {sku:'HSPS000008',name:'Parfume Vanilla 500ml'},
+  {sku:'HSPS000009',name:'Parfume Sweet Purple 500ml'},
+  {sku:'HSPS000010',name:'Parfume Baby Soap 500ml'},
+  {sku:'HSPS000011',name:'Parfume Greentea 500ml'},
+  {sku:'HSPS000012',name:'Parfume Choco 500ml'},
+  {sku:'HSPS000013',name:'Parfume BubbleGum 500ml'},
+  {sku:'HSPS000014',name:'Parfume Coffee 500ml'},
+  {sku:'HSPS000015',name:'Parfume Vanilla 1000ml'},
+  {sku:'HSPS000016',name:'Parfume Sweet Purple 1000ml'},
+  {sku:'HSPS000017',name:'Parfume Baby Soap 1000ml'},
+  {sku:'HSPS000018',name:'Parfume Greentea 1000ml'},
+  {sku:'HSPS000019',name:'Parfume Choco 1000ml'},
+  {sku:'HSPS000020',name:'Parfume BubbleGum 1000ml'},
+  {sku:'HSPS000021',name:'Parfume Coffee 1000ml'},
+  {sku:'HSPS000022',name:'Parfum Travel Kit'},
+  {sku:'HSPS000023',name:'Parfume Berry Burst 1000ml'},
+  {sku:'HSPS000024',name:'Parfume Berry Burst 100ml'},
+  {sku:'HSPS000025',name:'Parfume Berry Burst 500ml'},
+  {sku:'HSSK000001',name:'Starterkit Biasa Paket'},
+  {sku:'HSSK000002',name:'Starter Wire Brush Paket'},
+  {sku:'HSSK000003',name:'Starter Standart Paket'},
+  {sku:'HSSK000004',name:'Starter Premium Paket'},
+  {sku:'HSVC000001',name:'Paket Bundling Varian Cleaner 500ml'},
+  {sku:'HSVC000002',name:'Paket Bundling Varian Cleaner 1000ml'},
+  {sku:'HSVC000003',name:'Paket Bundling Cleaner All Materials 5 Liter'},
+  {sku:'HSVC000004',name:'Paket Bundling Cleaner All Materials 3 Liter'},
+  {sku:'HSEB000001',name:'Extra Bubblewrap'},
+];
+
+// Build product options string (reused in all dropdowns)
+const PROD_OPTS = '<option value="">— Pilih Produk —</option>' +
+  PRODUCTS.map(p=>`<option value="${p.sku}" data-name="${p.name}">${p.name}</option>`).join('');
+
+// ─── STORAGE ────────────────────────────────────────────────────
+const SK = 'hypo_invoices';
+const CK = 'hypo_counter';
+const getHistory = ()=>{ try{ return JSON.parse(localStorage.getItem(SK)||'[]'); }catch{ return []; }};
+const saveHistory = arr => localStorage.setItem(SK, JSON.stringify(arr));
+const getCounter = ()=> parseInt(localStorage.getItem(CK)||'0');
+const bumpCounter = ()=>{ const n=getCounter()+1; localStorage.setItem(CK,n); return n; };
+const peekNo = ()=>{ const n=getCounter()+1; return 'HYP-2026-'+String(n).padStart(4,'0'); };
+
+// ─── UTILS ──────────────────────────────────────────────────────
+const fmt = n => Number(n||0).toLocaleString('id-ID');
+const today = ()=> new Date().toISOString().slice(0,10);
+const fmtDate = d=>{ if(!d)return'-'; const[y,m,dd]=d.split('-'); const B=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']; return `${dd} ${B[+m-1]} ${y}`; };
+
+function genCustId(){
+  const hp = document.getElementById('f-hp').value.replace(/\D/g,'');
+  if(hp.length>=4){
+    document.getElementById('f-custid').value = 'CUST-' + hp.slice(-4);
+  } else {
+    document.getElementById('f-custid').value = '';
+  }
+}
+
+// ─── ITEM ROWS ───────────────────────────────────────────────────
+const MAX_ITEMS = 10;
+
+function buildItemRows(){
+  const tb = document.getElementById('item-body');
+  tb.innerHTML = '';
+  for(let i=0;i<MAX_ITEMS;i++){
+    const tr = document.createElement('tr');
+    tr.id = 'irow-'+i;
+    tr.innerHTML = `
+      <td class="item-row-num">${i+1}</td>
+      <td>
+        <select id="isku-${i}" onchange="onSkuChange(${i})" style="width:100%;padding:6px 4px;border:1px solid transparent;border-radius:5px;font-size:11px;font-family:inherit">
+          <option value="">—</option>
+          ${PRODUCTS.map(p=>`<option value="${p.sku}">${p.sku}</option>`).join('')}
+        </select>
+      </td>
+      <td>
+        <select id="iprd-${i}" onchange="onPrdChange(${i})" style="width:100%;padding:6px 4px;border:1px solid transparent;border-radius:5px;font-size:11px;font-family:inherit">
+          ${PROD_OPTS}
+        </select>
+      </td>
+      <td><input type="number" id="iqty-${i}" min="0" placeholder="0" style="width:46px;text-align:center" oninput="updatePreview()"></td>
+      <td><input type="number" id="ihrg-${i}" min="0" placeholder="Nego" style="width:86px;text-align:right" oninput="updatePreview()"></td>
+      <td class="item-sub" id="isub-${i}">—</td>
+      <td class="item-del"><button onclick="clearRow(${i})" title="Hapus baris">&#215;</button></td>`;
+    tb.appendChild(tr);
+  }
+}
+
+function onSkuChange(i){
+  const sku = document.getElementById('isku-'+i).value;
+  const p = PRODUCTS.find(x=>x.sku===sku);
+  if(p) document.getElementById('iprd-'+i).value = p.sku;
+  updatePreview();
+}
+
+function onPrdChange(i){
+  const val = document.getElementById('iprd-'+i).value;
+  document.getElementById('isku-'+i).value = val;
+  updatePreview();
+}
+
+function clearRow(i){
+  document.getElementById('isku-'+i).value='';
+  document.getElementById('iprd-'+i).value='';
+  document.getElementById('iqty-'+i).value='';
+  document.getElementById('ihrg-'+i).value='';
+  document.getElementById('isub-'+i).textContent='—';
+  updatePreview();
+}
+
+// ─── COLLECT DATA ────────────────────────────────────────────────
+function getItems(){
+  const items=[];
+  for(let i=0;i<MAX_ITEMS;i++){
+    const sku  = document.getElementById('isku-'+i).value;
+    const prd  = PRODUCTS.find(x=>x.sku===sku);
+    const qty  = parseFloat(document.getElementById('iqty-'+i).value)||0;
+    const hrg  = parseFloat(document.getElementById('ihrg-'+i).value)||0;
+    if(sku&&prd&&qty) items.push({sku, name:prd.name, qty, hrg, sub:qty*hrg});
+  }
+  return items;
+}
+
+function getData(){
+  return {
+    noInv  : document.getElementById('f-noinv').value,
+    tgl    : document.getElementById('f-tgl').value,
+    platform: document.getElementById('f-platform').value,
+    custId : document.getElementById('f-custid').value,
+    idMkt  : document.getElementById('f-idmkt').value,
+    nama   : document.getElementById('f-nama').value,
+    hp     : document.getElementById('f-hp').value,
+    alamat : document.getElementById('f-alamat').value,
+    ongkir : parseFloat(document.getElementById('f-ongkir').value)||0,
+    diskon : parseFloat(document.getElementById('f-diskon').value)||0,
+    catatan: document.getElementById('f-catatan').value,
+    items  : getItems(),
+  };
+}
+
+// ─── PREVIEW ────────────────────────────────────────────────────
+function buildPreviewHTML(d){
+  const sub = d.items.reduce((a,x)=>a+x.sub,0);
+  const total = sub + d.ongkir - d.diskon;
+
+  const rows = d.items.length
+    ? d.items.map((it,i)=>`
+        <tr class="${i%2===1?'inv-tr-alt':''}">
+          <td class="inv-td">${i+1}</td>
+          <td class="inv-td">${it.sku}</td>
+          <td class="inv-td">${it.name}</td>
+          <td class="inv-td" style="text-align:center">${it.qty}</td>
+          <td class="inv-td r">${it.hrg?'Rp '+fmt(it.hrg):'-'}</td>
+          <td class="inv-td r">${it.hrg?'Rp '+fmt(it.sub):'-'}</td>
+        </tr>`).join('')
+    : `<tr><td colspan="6" class="inv-td" style="text-align:center;color:#aaa;padding:8px">Belum ada item</td></tr>`;
+
+  return `
+  <div class="inv">
+    <div class="inv-header">
+      <div><div class="inv-brand">HYPOSPOT</div><div class="inv-subline">Shoes Care</div></div>
+      <div class="inv-word">INVOICE</div>
+    </div>
+    <div class="inv-gold"></div>
+    <div class="inv-meta">
+      <div>
+        <div class="inv-kv"><span class="inv-k">DARI:</span><span class="inv-v">Hypospot Shoes Care</span></div>
+        <div class="inv-kv"><span class="inv-k">Alamat:</span><span class="inv-v">Jl. Dr. Susilo VI No.4A, Jakarta Barat</span></div>
+        <div class="inv-kv"><span class="inv-k">Platform:</span><span class="inv-v">${d.platform}</span></div>
+      </div>
+      <div style="text-align:right">
+        <div class="inv-kv" style="justify-content:flex-end"><span class="inv-k" style="min-width:auto;margin-right:5px">No. Inv:</span><span class="inv-v highlight">${d.noInv||'—'}</span></div>
+        <div class="inv-kv" style="justify-content:flex-end"><span class="inv-k" style="min-width:auto;margin-right:5px">Tanggal:</span><span class="inv-v">${fmtDate(d.tgl)}</span></div>
+        <div class="inv-kv" style="justify-content:flex-end"><span class="inv-k" style="min-width:auto;margin-right:5px">Cust ID:</span><span class="inv-v">${d.custId||'—'}</span></div>
+        <div class="inv-kv" style="justify-content:flex-end"><span class="inv-k" style="min-width:auto;margin-right:5px">Nama:</span><span class="inv-v">${d.nama||'—'}</span></div>
+        <div class="inv-kv" style="justify-content:flex-end"><span class="inv-k" style="min-width:auto;margin-right:5px">No. HP:</span><span class="inv-v">${d.hp||'—'}</span></div>
+        ${d.idMkt?`<div class="inv-kv" style="justify-content:flex-end"><span class="inv-k" style="min-width:auto;margin-right:5px">ID MKT:</span><span class="inv-v">${d.idMkt}</span></div>`:''}
+      </div>
+    </div>
+    <div class="inv-section-head">Alamat Pengiriman</div>
+    <div class="inv-addr">${d.alamat||'—'}</div>
+    <table class="inv-table">
+      <thead>
+        <tr>
+          <th class="inv-th" style="width:18px">#</th>
+          <th class="inv-th" style="width:72px">SKU</th>
+          <th class="inv-th">Nama Produk</th>
+          <th class="inv-th" style="width:26px;text-align:center">Qty</th>
+          <th class="inv-th r" style="width:62px">Harga</th>
+          <th class="inv-th r" style="width:64px">Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="inv-summary">
+      <div class="inv-srow"><span>Subtotal</span><span>Rp ${fmt(sub)}</span></div>
+      ${d.ongkir?`<div class="inv-srow"><span>Ongkos Kirim</span><span>Rp ${fmt(d.ongkir)}</span></div>`:''}
+      ${d.diskon?`<div class="inv-srow disc"><span>Diskon / Voucher</span><span>- Rp ${fmt(d.diskon)}</span></div>`:''}
+    </div>
+    <div class="inv-total"><span>TOTAL PEMBAYARAN</span><span>Rp ${fmt(total)}</span></div>
+    ${d.catatan?`<div class="inv-note">Catatan: ${d.catatan}</div>`:''}
+    <div class="inv-note">Terima kasih telah berbelanja di Hypospot Shoes Care! 🐟</div>
+    <div class="inv-footer"></div>
+  </div>`;
+}
+
+function updatePreview(){
+  const d = getData();
+  // update subtotal cells
+  for(let i=0;i<MAX_ITEMS;i++){
+    const qty=parseFloat(document.getElementById('iqty-'+i).value)||0;
+    const hrg=parseFloat(document.getElementById('ihrg-'+i).value)||0;
+    const el=document.getElementById('isub-'+i);
+    if(el) el.textContent = (qty&&hrg)?'Rp '+fmt(qty*hrg):'—';
+  }
+  const sub = d.items.reduce((a,x)=>a+x.sub,0);
+  const total = sub + d.ongkir - d.diskon;
+  document.getElementById('s-sub').textContent = 'Rp '+fmt(sub);
+  document.getElementById('s-total').textContent = 'Rp '+fmt(total);
+  document.getElementById('inv-preview').innerHTML = buildPreviewHTML(d);
+}
+
+// ─── SAVE ────────────────────────────────────────────────────────
+function saveInvoice(){
+  const d = getData();
+  if(!d.nama && !d.items.length){ showToast('Isi nama pembeli atau minimal 1 item.'); return; }
+  const hist = getHistory();
+  hist.unshift({...d, savedAt: new Date().toISOString()});
+  saveHistory(hist.slice(0,200));
+  bumpCounter();
+  document.getElementById('f-noinv').value = peekNo();
+  showToast('Invoice tersimpan! ✓');
+  renderHistory();
+}
+
+// ─── RESET ───────────────────────────────────────────────────────
+function resetForm(){
+  ['f-nama','f-hp','f-custid','f-idmkt','f-alamat','f-ongkir','f-diskon','f-catatan'].forEach(id=>{
+    document.getElementById(id).value='';
+  });
+  document.getElementById('f-tgl').value=today();
+  document.getElementById('f-platform').value='Shopee';
+  document.getElementById('f-noinv').value=peekNo();
+  for(let i=0;i<MAX_ITEMS;i++) clearRow(i);
+  updatePreview();
+}
+
+// ─── PRINT PDF ───────────────────────────────────────────────────
+function printPDF(){
+  const d = getData();
+  const sub = d.items.reduce((a,x)=>a+x.sub,0);
+  const total = sub + d.ongkir - d.diskon;
+
+  const itemRows = d.items.length
+    ? d.items.map((it,i)=>`
+        <tr style="${i%2===1?'background:#FFFBF0':''}">
+          <td style="padding:4px 8px;border-bottom:.5px solid #EEE;font-size:9px">${i+1}</td>
+          <td style="padding:4px 8px;border-bottom:.5px solid #EEE;font-size:9px">${it.sku}</td>
+          <td style="padding:4px 8px;border-bottom:.5px solid #EEE;font-size:9px">${it.name}</td>
+          <td style="padding:4px 8px;border-bottom:.5px solid #EEE;font-size:9px;text-align:center">${it.qty}</td>
+          <td style="padding:4px 8px;border-bottom:.5px solid #EEE;font-size:9px;text-align:right">${it.hrg?'Rp '+fmt(it.hrg):'-'}</td>
+          <td style="padding:4px 8px;border-bottom:.5px solid #EEE;font-size:9px;text-align:right;font-weight:600">${it.hrg?'Rp '+fmt(it.sub):'-'}</td>
+        </tr>`).join('')
+    : `<tr><td colspan="6" style="text-align:center;padding:12px;color:#aaa;font-size:9px">Tidak ada item</td></tr>`;
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>Invoice ${d.noInv} — Hypospot</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#fff;color:#1a1a1a}
+@page{size:A4;margin:10mm}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style></head><body>
+<div style="width:190mm;margin:0 auto">
+<div style="background:#1A1A1A;padding:16px 20px 12px;display:flex;justify-content:space-between;align-items:center">
+  <div><div style="font-size:22px;font-weight:700;color:#CBA135;letter-spacing:.5px">HYPOSPOT</div>
+  <div style="font-size:8px;color:#888;letter-spacing:.1em;text-transform:uppercase;margin-top:1px">Shoes Care</div></div>
+  <div style="font-size:20px;font-weight:700;color:#FFF">INVOICE</div>
+</div>
+<div style="height:4px;background:#CBA135"></div>
+<div style="background:#1A1A1A;display:grid;grid-template-columns:1fr 1fr;padding:8px 20px 10px;gap:4px">
+  <div>
+    ${[['DARI:','Hypospot Shoes Care'],['Alamat:','Jl. Dr. Susilo VI No.4A, RT.1/RW.5'],['','Grogol, Jakarta Barat 11450'],['Platform:',d.platform]].map(([k,v])=>`<div style="display:flex;gap:6px;margin-bottom:2px"><span style="color:#CBA135;font-size:8px;font-weight:700;min-width:52px">${k}</span><span style="color:#FFF;font-size:8px">${v}</span></div>`).join('')}
+  </div>
+  <div style="text-align:right">
+    ${[['No. Invoice:',`<span style="color:#CBA135;font-weight:700">${d.noInv}</span>`],['Tanggal:',fmtDate(d.tgl)],['Cust ID:',d.custId||'—'],['Nama:',d.nama||'—'],['No. HP:',d.hp||'—'],d.idMkt?['ID MKT:',d.idMkt]:null].filter(Boolean).map(([k,v])=>`<div style="display:flex;justify-content:flex-end;gap:6px;margin-bottom:2px"><span style="color:#CBA135;font-size:8px;font-weight:700">${k}</span><span style="color:#FFF;font-size:8px">${v}</span></div>`).join('')}
+  </div>
+</div>
+<div style="background:#2D2D2D;color:#FFF;font-size:8px;font-weight:700;padding:5px 20px;letter-spacing:.06em;text-transform:uppercase">Alamat Pengiriman</div>
+<div style="padding:6px 20px 8px;background:#F9F9F9;color:#555;font-size:9px;min-height:28px;line-height:1.6">${d.alamat||'—'}</div>
+<table style="width:100%;border-collapse:collapse">
+  <thead><tr>
+    <th style="background:#1A1A1A;color:#FFF;font-size:8px;font-weight:700;padding:5px 8px;text-align:left;width:20px">#</th>
+    <th style="background:#1A1A1A;color:#FFF;font-size:8px;font-weight:700;padding:5px 8px;text-align:left;width:80px">SKU</th>
+    <th style="background:#1A1A1A;color:#FFF;font-size:8px;font-weight:700;padding:5px 8px;text-align:left">Nama Produk</th>
+    <th style="background:#1A1A1A;color:#FFF;font-size:8px;font-weight:700;padding:5px 8px;text-align:center;width:30px">Qty</th>
+    <th style="background:#1A1A1A;color:#FFF;font-size:8px;font-weight:700;padding:5px 8px;text-align:right;width:72px">Harga</th>
+    <th style="background:#1A1A1A;color:#FFF;font-size:8px;font-weight:700;padding:5px 8px;text-align:right;width:80px">Subtotal</th>
+  </tr></thead>
+  <tbody>${itemRows}</tbody>
+</table>
+<div style="padding:5px 20px 0;background:#F9F9F9">
+  <div style="display:flex;justify-content:space-between;font-size:9px;padding:3px 0;color:#555"><span>Subtotal</span><span>Rp ${fmt(sub)}</span></div>
+  ${d.ongkir?`<div style="display:flex;justify-content:space-between;font-size:9px;padding:3px 0;color:#555"><span>Ongkos Kirim</span><span>Rp ${fmt(d.ongkir)}</span></div>`:''}
+  ${d.diskon?`<div style="display:flex;justify-content:space-between;font-size:9px;padding:3px 0;color:#CC3333"><span>Diskon / Voucher</span><span>- Rp ${fmt(d.diskon)}</span></div>`:''}
+</div>
+<div style="background:#1A1A1A;display:flex;justify-content:space-between;padding:8px 20px;font-size:13px;font-weight:700;color:#CBA135">
+  <span>TOTAL PEMBAYARAN</span><span>Rp ${fmt(total)}</span>
+</div>
+${d.catatan?`<div style="padding:5px 20px;font-size:8px;color:#999;font-style:italic;background:#fff">Catatan: ${d.catatan}</div>`:''}
+<div style="padding:5px 20px 10px;font-size:8px;color:#AAA;font-style:italic;background:#fff">Terima kasih telah berbelanja di Hypospot Shoes Care!</div>
+<div style="height:4px;background:#CBA135"></div>
+</div>
+<script>window.onload=function(){window.print();window.onafterprint=function(){window.close()};}<\/script>
+</body></html>`;
+
+  const w = window.open('','_blank','width=900,height:1000');
+  if(w){ w.document.write(html); w.document.close(); }
+  else { showToast('Izinkan pop-up di browser untuk cetak PDF'); }
+}
+
+// ─── HISTORY ────────────────────────────────────────────────────
+function renderHistory(){
+  const q = (document.getElementById('hist-search').value||'').toLowerCase();
+  const pf = document.getElementById('hist-filter').value;
+  let hist = getHistory();
+  if(pf) hist = hist.filter(h=>h.platform===pf);
+  if(q) hist = hist.filter(h=>(h.nama||'').toLowerCase().includes(q)||(h.noInv||'').toLowerCase().includes(q)||(h.custId||'').toLowerCase().includes(q));
+
+  const totalAll = getHistory().length;
+  document.getElementById('hist-stats').textContent = totalAll
+    ? `${hist.length} dari ${totalAll} invoice`+( (hist.length!==totalAll)?' (difilter)':'' )
+    : '';
+
+  const el = document.getElementById('hist-list');
+  if(!hist.length){
+    el.innerHTML = `<div class="hist-empty">&#128196;<br><br>Belum ada invoice tersimpan.<br><span style="font-size:11px">Buat invoice baru di tab "Buat Invoice".</span></div>`;
+    return;
+  }
+
+  el.innerHTML = hist.map((h,i)=>{
+    const sub = (h.items||[]).reduce((a,x)=>a+x.sub,0);
+    const total = sub + (h.ongkir||0) - (h.diskon||0);
+    const pClass = {Shopee:'badge-shopee','TikTok Shop':'badge-tiktok',Tokopedia:'badge-tokopedia'}[h.platform]||'badge-lain';
+    return `<div class="hist-card">
+      <div class="hist-item" onclick="loadInvoice(${i})">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+            <span class="hist-no">${h.noInv}</span>
+            <span class="badge ${pClass}">${h.platform}</span>
+          </div>
+          <div class="hist-meta">${h.custId||''} ${h.custId&&h.nama?'·':''} ${h.nama||'—'} &nbsp;·&nbsp; ${fmtDate(h.tgl)} &nbsp;·&nbsp; ${(h.items||[]).length} item</div>
+        </div>
+        <div class="hist-right">
+          <div class="hist-total">Rp ${fmt(total)}</div>
+          <div class="hist-actions">
+            <button class="btn btn-sm" onclick="reprintInvoice(${i});event.stopPropagation()" title="Cetak ulang">&#128438; PDF</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteInvoice(${i});event.stopPropagation()" title="Hapus">&#215; Hapus</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function loadInvoice(idx){
+  const hist = getHistory();
+  const h = hist[idx];
+  if(!h) return;
+  document.getElementById('f-noinv').value=h.noInv;
+  document.getElementById('f-tgl').value=h.tgl||today();
+  document.getElementById('f-platform').value=h.platform||'Shopee';
+  document.getElementById('f-custid').value=h.custId||'';
+  document.getElementById('f-idmkt').value=h.idMkt||'';
+  document.getElementById('f-nama').value=h.nama||'';
+  document.getElementById('f-hp').value=h.hp||'';
+  document.getElementById('f-alamat').value=h.alamat||'';
+  document.getElementById('f-ongkir').value=h.ongkir||'';
+  document.getElementById('f-diskon').value=h.diskon||'';
+  document.getElementById('f-catatan').value=h.catatan||'';
+  for(let i=0;i<MAX_ITEMS;i++){
+    const it = (h.items||[])[i];
+    document.getElementById('isku-'+i).value=it?it.sku:'';
+    document.getElementById('iprd-'+i).value=it?it.sku:'';
+    document.getElementById('iqty-'+i).value=it?it.qty:'';
+    document.getElementById('ihrg-'+i).value=it?it.hrg:'';
+  }
+  updatePreview();
+  switchTab('form');
+  showToast('Invoice dimuat! Klik "Unduh PDF" untuk cetak.');
+}
+
+function reprintInvoice(idx){
+  const hist = getHistory();
+  const h = hist[idx];
+  if(!h) return;
+  loadInvoice(idx);
+  setTimeout(printPDF, 300);
+}
+
+function deleteInvoice(idx){
+  if(!confirm('Hapus invoice ini dari riwayat?')) return;
+  const hist = getHistory();
+  hist.splice(idx,1);
+  saveHistory(hist);
+  renderHistory();
+  showToast('Invoice dihapus.');
+}
+
+function clearHistory(){
+  if(!confirm('Hapus SEMUA riwayat invoice? Tindakan ini tidak bisa dibatalkan.')) return;
+  saveHistory([]);
+  renderHistory();
+  showToast('Semua riwayat dihapus.');
+}
+
+// ─── TAB & TOAST ─────────────────────────────────────────────────
+function switchTab(name){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  const idx = name==='form'?0:1;
+  document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+  if(name==='history') renderHistory();
+}
+
+let toastTimer;
+function showToast(msg){
+  clearTimeout(toastTimer);
+  document.getElementById('toast-msg').textContent=msg;
+  document.getElementById('toast').classList.add('show');
+  toastTimer=setTimeout(()=>document.getElementById('toast').classList.remove('show'),2800);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────
+buildItemRows();
+document.getElementById('f-noinv').value = peekNo();
+document.getElementById('f-tgl').value = today();
+
+// Live preview wiring
+['f-tgl','f-platform','f-nama','f-hp','f-idmkt','f-alamat','f-ongkir','f-diskon','f-catatan'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el){ el.addEventListener('input',updatePreview); el.addEventListener('change',updatePreview); }
+});
+
+updatePreview();
+</script>
+</body>
+</html>
